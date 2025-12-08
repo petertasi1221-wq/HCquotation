@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Camera } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { X, Camera, Share2, Copy, Loader2 } from 'lucide-react';
 import { DiscountState, VersionData } from '../types';
 
 interface SummaryModalProps {
@@ -25,6 +25,9 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
   versionData,
   discounts,
 }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+
   if (!isOpen) return null;
 
   // Helper to get selected discounts for list
@@ -37,81 +40,166 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
 
   const totalDiscount = activeDiscounts.reduce((acc, curr) => acc + Math.abs(curr.value), 0);
 
+  const handleCaptureAndShare = async () => {
+    if (!cardRef.current || isCapturing) return;
+    setIsCapturing(true);
+
+    try {
+      // @ts-ignore - html2canvas is loaded via CDN
+      const canvas = await window.html2canvas(cardRef.current, {
+        scale: 2, // Improve quality
+        backgroundColor: null,
+        logging: false,
+        useCORS: true
+      });
+
+      canvas.toBlob(async (blob: Blob | null) => {
+        if (!blob) {
+            setIsCapturing(false);
+            return;
+        }
+
+        const file = new File([blob], "vehicle-quote.png", { type: "image/png" });
+
+        // Strategy 1: Web Share API (Mobile Native Share Sheet)
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          try {
+            await navigator.share({
+              files: [file],
+              title: '皇昌車業報價單',
+              text: `${modelName} ${versionName} 報價單`
+            });
+            setIsCapturing(false);
+            return; // Success
+          } catch (error) {
+            console.log('Share cancelled or failed', error);
+            // Fallthrough to clipboard if share fails (e.g. user cancelled)
+          }
+        }
+
+        // Strategy 2: Clipboard API
+        try {
+          const item = new ClipboardItem({ "image/png": blob });
+          await navigator.clipboard.write([item]);
+          alert("✅ 報價單已複製到剪貼簿！\n您可以直接貼上傳送。");
+        } catch (err) {
+          console.error(err);
+          alert("❌ 無法自動複製，請手動截圖保存。");
+        }
+        
+        setIsCapturing(false);
+      }, 'image/png');
+
+    } catch (error) {
+      console.error("Capture failed:", error);
+      alert("發生錯誤，請重試");
+      setIsCapturing(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div 
-        className="bg-paper-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden relative border-4 border-milk-accent/30"
+        className="w-full max-w-sm relative"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Tape effect */}
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-32 h-8 bg-milk-accent/40 rotate-1 shadow-sm z-10"></div>
-
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 text-milk-dark hover:text-soft-red transition-colors z-20"
+        {/* The Card Content to Capture */}
+        <div 
+          ref={cardRef}
+          className="bg-paper-white rounded-2xl shadow-2xl overflow-hidden relative border-4 border-milk-accent/30"
         >
-          <X size={28} />
-        </button>
+          {/* Tape effect */}
+          <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-32 h-8 bg-milk-accent/40 rotate-1 shadow-sm z-10"></div>
 
-        <div className="p-6 pt-10">
-          <h2 className="text-2xl font-bold text-center text-milk-dark mb-6 border-b-2 border-milk-accent pb-2">
-            車輛報價單
-          </h2>
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 text-milk-dark hover:text-soft-red transition-colors z-20"
+          >
+            <X size={28} />
+          </button>
 
-          <div className="space-y-3 text-sm text-gray-700">
-            <div className="flex justify-between items-baseline">
-              <span className="text-gray-500">車種</span>
-              <span className="font-bold text-lg text-milk-dark">{modelName}</span>
-            </div>
-            <div className="flex justify-between items-baseline">
-              <span className="text-gray-500">版本</span>
-              <span className="font-bold text-lg text-milk-dark">{versionName}</span>
-            </div>
-            <div className="flex justify-between items-baseline border-b border-dashed border-gray-300 pb-3">
-              <span className="text-gray-500">方案</span>
-              <span className="font-bold text-milk-dark bg-milk-bg px-2 py-0.5 rounded text-right max-w-[60%] leading-tight">
-                {priceTypeLabel}
-              </span>
-            </div>
+          <div className="p-6 pt-10">
+            <h2 className="text-2xl font-bold text-center text-milk-dark mb-6 border-b-2 border-milk-accent pb-2">
+              車輛報價單
+            </h2>
 
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-gray-500">售價</span>
-              <span className="font-rounded text-lg font-bold">{basePrice.toLocaleString()} 元</span>
-            </div>
+            <div className="space-y-3 text-sm text-gray-700">
+              <div className="flex justify-between items-baseline">
+                <span className="text-gray-500">車種</span>
+                <span className="font-bold text-lg text-milk-dark">{modelName}</span>
+              </div>
+              <div className="flex justify-between items-baseline">
+                <span className="text-gray-500">版本</span>
+                <span className="font-bold text-lg text-milk-dark">{versionName}</span>
+              </div>
+              <div className="flex justify-between items-baseline border-b border-dashed border-gray-300 pb-3">
+                <span className="text-gray-500">方案</span>
+                <span className="font-bold text-milk-dark bg-milk-bg px-2 py-0.5 rounded text-right max-w-[60%] leading-tight">
+                  {priceTypeLabel}
+                </span>
+              </div>
 
-            {activeDiscounts.length > 0 && (
-              <div className="bg-milk-bg/50 rounded-lg p-3 mt-2 space-y-1">
-                <p className="text-xs font-bold text-milk-dark mb-2">包含折扣：</p>
-                {activeDiscounts.map((d, idx) => (
-                  <div key={idx} className="flex justify-between text-xs">
-                    <span>{d.label}</span>
-                    <span className="text-soft-red font-bold font-rounded">-{Math.abs(d.value).toLocaleString()}</span>
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-gray-500">售價</span>
+                <span className="font-rounded text-lg font-bold">{basePrice.toLocaleString()} 元</span>
+              </div>
+
+              {activeDiscounts.length > 0 && (
+                <div className="bg-milk-bg/50 rounded-lg p-3 mt-2 space-y-1">
+                  <p className="text-xs font-bold text-milk-dark mb-2">包含折扣：</p>
+                  {activeDiscounts.map((d, idx) => (
+                    <div key={idx} className="flex justify-between text-xs">
+                      <span>{d.label}</span>
+                      <span className="text-soft-red font-bold font-rounded">-{Math.abs(d.value).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-milk-dark/20 mt-2 pt-1 flex justify-between text-xs font-bold text-soft-red">
+                    <span>共省下</span>
+                    <span className="font-rounded">{totalDiscount.toLocaleString()} 元</span>
                   </div>
-                ))}
-                <div className="border-t border-milk-dark/20 mt-2 pt-1 flex justify-between text-xs font-bold text-soft-red">
-                  <span>共省下</span>
-                  <span className="font-rounded">{totalDiscount.toLocaleString()} 元</span>
                 </div>
-              </div>
-            )}
+              )}
 
-            {versionData?.GiftNote && (
-              <div className="mt-4 p-3 border border-dashed border-milk-accent rounded-lg bg-[#FFFBEB] text-xs leading-relaxed text-milk-dark">
-                <span className="font-bold">🎁 贈品活動：</span>
-                {versionData.GiftNote}
-              </div>
-            )}
-          </div>
+              {versionData?.GiftNote && (
+                <div className="mt-4 p-3 border border-dashed border-milk-accent rounded-lg bg-[#FFFBEB] text-xs leading-relaxed text-milk-dark">
+                  <span className="font-bold">🎁 贈品活動：</span>
+                  {versionData.GiftNote}
+                </div>
+              )}
+            </div>
 
-          <div className="mt-8 pt-4 border-t-2 border-milk-dark/10 text-center">
-             <p className="text-sm text-gray-500 mb-1">車輛價格</p>
-             <p className="font-rounded text-4xl font-bold text-soft-red">{finalPrice.toLocaleString()} <span className="text-xl text-gray-400">元</span></p>
-          </div>
-          
-          <div className="mt-6 text-center text-[10px] text-gray-400">
-            實際價格依門市為主
+            <div className="mt-8 pt-4 border-t-2 border-milk-dark/10 text-center">
+               <p className="text-sm text-gray-500 mb-1">車輛價格</p>
+               <p className="font-rounded text-4xl font-bold text-soft-red">{finalPrice.toLocaleString()} <span className="text-xl text-gray-400">元</span></p>
+            </div>
+            
+            <div className="mt-6 text-center text-[10px] text-gray-400">
+              實際價格依門市為主
+            </div>
           </div>
         </div>
+
+        {/* Action Button (Outside the capture area) */}
+        <div className="mt-6 flex justify-center">
+          <button
+            onClick={handleCaptureAndShare}
+            disabled={isCapturing}
+            className="flex items-center gap-2 bg-milk-dark text-white px-6 py-3 rounded-full shadow-xl hover:bg-milk-accent transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed font-bold"
+          >
+            {isCapturing ? (
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                <span>處理中...</span>
+              </>
+            ) : (
+              <>
+                <Share2 size={20} />
+                <span>複製 / 分享報價單</span>
+              </>
+            )}
+          </button>
+        </div>
+
       </div>
     </div>
   );
