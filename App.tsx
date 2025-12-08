@@ -54,7 +54,8 @@ const App: React.FC = () => {
     if (!currentVersionData) return { cash: [], installment: [] };
     
     const cash: { key: string; price: number; label: string }[] = [];
-    const installment: { key: string; price: number; label: string }[] = [];
+    // Extend type to include period details for rendering
+    const installment: { key: string; price: number; label: string; period: number; pricePerPeriod: number }[] = [];
 
     Object.entries(currentVersionData.Prices).forEach(([key, price]) => {
       if (price === 0) return; // Skip invalid prices
@@ -64,11 +65,15 @@ const App: React.FC = () => {
       } else if (key.includes('#') && key.includes('期')) {
         const periodMatch = key.match(/#(\d+)/);
         const period = periodMatch ? parseInt(periodMatch[1]) : 0;
-        const pricePerPeriod = period > 0 ? Math.round(price / period) : 0;
+        // 使用 Math.ceil 進行無條件進位
+        const pricePerPeriod = period > 0 ? Math.ceil(price / period) : 0;
+        
         installment.push({ 
           key, 
           price, 
-          label: `${period}期 : ${pricePerPeriod.toLocaleString()} 元/期` 
+          period,
+          pricePerPeriod,
+          label: `${period}期：每期${pricePerPeriod.toLocaleString()}元` 
         });
       } else {
         cash.push({ key, price, label: `${key}: ${price.toLocaleString()} 元` });
@@ -242,7 +247,7 @@ const App: React.FC = () => {
                               checked={selectedPriceKey === opt.key} 
                               onChange={(e) => setSelectedPriceKey(e.target.value)}
                             />
-                            <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPriceKey === opt.key ? 'border-milk-accent' : 'border-gray-300'}`}>
+                            <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center flex-shrink-0 ${selectedPriceKey === opt.key ? 'border-milk-accent' : 'border-gray-300'}`}>
                               {selectedPriceKey === opt.key && <div className="w-2 h-2 rounded-full bg-milk-accent" />}
                             </div>
                             <span className="font-bold text-gray-700 font-rounded">{opt.label}</span>
@@ -273,14 +278,17 @@ const App: React.FC = () => {
                                   checked={selectedPriceKey === opt.key} 
                                   onChange={(e) => setSelectedPriceKey(e.target.value)}
                                 />
-                                <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center ${selectedPriceKey === opt.key ? 'border-milk-accent' : 'border-gray-300'}`}>
+                                <div className={`w-4 h-4 rounded-full border-2 mr-3 flex items-center justify-center flex-shrink-0 ${selectedPriceKey === opt.key ? 'border-milk-accent' : 'border-gray-300'}`}>
                                   {selectedPriceKey === opt.key && <div className="w-2 h-2 rounded-full bg-milk-accent" />}
                                 </div>
-                                <span className="font-bold text-gray-700">{opt.key.match(/#(\d+)/)?.[1]} 期</span>
+                                <span className="font-bold text-gray-700 text-lg whitespace-nowrap">{opt.period} 期</span>
                            </div>
-                           <span className="font-rounded text-lg font-bold text-milk-dark">
-                             {opt.price.toLocaleString()} 元
-                           </span>
+                           
+                           <div className="text-right flex flex-col sm:block font-rounded font-bold text-milk-dark">
+                             <span className="text-lg">{opt.price.toLocaleString()}元</span>
+                             <span className="hidden sm:inline text-gray-400 mx-1">/</span>
+                             <span className="text-sm sm:text-base text-soft-red">每期 {opt.pricePerPeriod.toLocaleString()}元</span>
+                           </div>
                          </label>
                        ))}
                      </div>

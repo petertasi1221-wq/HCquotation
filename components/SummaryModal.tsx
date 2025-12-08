@@ -75,7 +75,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
             </div>
 
             <div className="flex justify-between items-center pt-2">
-              <span className="text-gray-500">原始售價</span>
+              <span className="text-gray-500">售價</span>
               <span className="font-rounded text-lg font-bold">{basePrice.toLocaleString()} 元</span>
             </div>
 
