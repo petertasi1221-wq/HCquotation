@@ -3,7 +3,7 @@ import { fetchPriceData } from './services/sheetService';
 import { PriceDatabase, DiscountState, VersionData } from './types';
 import { CheckboxRow } from './components/CheckboxRow';
 import { SummaryModal } from './components/SummaryModal';
-import { Loader2, Camera, ChevronRight, Tag, NotebookPen, Store } from 'lucide-react';
+import { Loader2, Camera, ChevronRight, Tag, NotebookPen, Store, RotateCcw } from 'lucide-react';
 
 const App: React.FC = () => {
   const [db, setDb] = useState<PriceDatabase>({});
@@ -150,7 +150,15 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen pb-32 max-w-lg mx-auto shadow-2xl bg-white relative">
       {/* Header */}
-      <header className="bg-milk-accent/20 p-6 rounded-b-[30px] mb-6">
+      <header className="bg-milk-accent/20 p-6 rounded-b-[30px] mb-6 relative">
+        <button 
+          onClick={() => window.location.reload()}
+          className="absolute top-4 right-4 text-milk-dark/40 hover:text-milk-dark transition-all duration-500 active:rotate-180"
+          aria-label="重新整理"
+        >
+          <RotateCcw size={18} />
+        </button>
+
         <div className="flex items-center justify-center gap-3 mb-2">
           {/* 使用 Store 圖示代表車行，保持與右側 NotebookPen 風格一致 */}
           <Store className="text-milk-dark opacity-90" size={28} strokeWidth={2.5} />
