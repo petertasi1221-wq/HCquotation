@@ -171,7 +171,7 @@ const App: React.FC = () => {
         </div>
         <div className="text-center">
            <span className="inline-block bg-white/80 px-4 py-1 rounded-full text-sm text-milk-dark/80 font-bold shadow-sm">
-             114年12月 報價單
+             115年 1月 報價單
            </span>
         </div>
       </header>
