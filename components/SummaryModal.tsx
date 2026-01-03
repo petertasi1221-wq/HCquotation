@@ -32,7 +32,7 @@ export const SummaryModal: React.FC<SummaryModalProps> = ({
 
   // Helper to get selected discounts for list
   const activeDiscounts = [
-    { label: '購車金 (公司折扣)', value: versionData?.PurchaseBonus || 0, active: discounts.PurchaseBonus },
+    { label: '公司購車金 (事後匯款)', value: versionData?.PurchaseBonus || 0, active: discounts.PurchaseBonus },
     { label: '汰舊貨物稅減免', value: versionData?.TaxScrap || 0, active: discounts.TaxScrap },
     { label: '報廢回收金', value: versionData?.ScrapRefund || 0, active: discounts.ScrapRefund },
     { label: '新購貨物稅減免', value: versionData?.TaxNew || 0, active: discounts.TaxNew },
