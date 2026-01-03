@@ -316,7 +316,7 @@ const App: React.FC = () => {
             
             <div className="mt-4 space-y-1">
               <CheckboxRow 
-                label="購車金 (公司折扣)" 
+                label="公司購車金(事後匯款)" 
                 value={currentVersionData.PurchaseBonus} 
                 checked={discounts.PurchaseBonus} 
                 onChange={() => toggleDiscount('PurchaseBonus')}
